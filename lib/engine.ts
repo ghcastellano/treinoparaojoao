@@ -105,12 +105,7 @@ export function updateSkill(skill: Skill, a: Attempt): Skill {
       };
     }
   }
-  const threshold = s.level <= 2 ? 3 : 4;
-  if (
-    s.successes >= threshold &&
-    s.variants.length >= Math.min(3, threshold) &&
-    (s.level <= 2 || s.days.length >= 2)
-  ) {
+  if (s.successes >= 2 && s.variants.length >= 2) {
     if (s.level === 6) return { ...s, atCeiling: true };
     return {
       ...s,

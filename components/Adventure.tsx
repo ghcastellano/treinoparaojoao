@@ -226,17 +226,42 @@ export default function Adventure() {
   const [error, setError] = useState("");
   const [parent, setParent] = useState<Parent | null>(null);
   const [paused, setPaused] = useState(false);
-  const [sound, setSound] = useState(true);
+  const [sound, setSound] = useState(false);
+  const soundRef = useRef(false);
+  const soundChoice = useRef<boolean | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState("");
   const lock = useRef(false);
   const focusRef = useRef<HTMLHeadingElement>(null);
+  function syncSound(defaultSound: boolean) {
+    if (soundChoice.current === null) {
+      try {
+        const saved = localStorage.getItem("joao-sound");
+        if (saved === "true" || saved === "false")
+          soundChoice.current = saved === "true";
+      } catch {}
+    }
+    const enabled = soundChoice.current ?? defaultSound;
+    soundRef.current = enabled;
+    setSound(enabled);
+  }
+  function toggleSound() {
+    const enabled = !soundRef.current;
+    soundChoice.current = enabled;
+    soundRef.current = enabled;
+    setSound(enabled);
+    try {
+      localStorage.setItem("joao-sound", String(enabled));
+    } catch {}
+    if (!enabled && "speechSynthesis" in window)
+      window.speechSynthesis.cancel();
+  }
   async function load() {
     try {
       const d = await childState();
       setData(d);
-      setSound(d.settings.sound);
+      syncSound(d.settings.sound);
       setSession(d.active);
       setView(d.active ? "play" : "home");
     } catch (e) {
@@ -254,7 +279,7 @@ export default function Adventure() {
       .then((d) => {
         if (cancelled) return;
         setData(d);
-        setSound(d.settings.sound);
+        syncSound(d.settings.sound);
         setSession(d.active);
         setView(d.active ? "play" : "home");
       })
@@ -293,7 +318,7 @@ export default function Adventure() {
     }
   }
   async function begin(activity: ActivityId) {
-    speech("Vamos brincar!", sound);
+    speech("Vamos brincar!", soundRef.current);
     await run(async () => {
       const s = await api<Session>("start", { activity });
       setSession(s);
@@ -320,7 +345,7 @@ export default function Adventure() {
         setView("done");
         speech(
           "Foi bom explorar com você. Agora, vamos brincar fora da tela?",
-          sound,
+          soundRef.current,
         );
       } else if (name === "answer") {
         const r = s.rounds.at(-1)!;
@@ -328,9 +353,9 @@ export default function Adventure() {
           r.resolved
             ? r.explanation || ""
             : "Vamos olhar com calma. Você pode tentar outra vez.",
-          sound,
+          soundRef.current,
         );
-      } else if (name === "hint") speech(s.rounds.at(-1)!.hint || "", sound);
+      } else if (name === "hint") speech(s.rounds.at(-1)!.hint || "", soundRef.current);
     });
   }
   async function finish() {
@@ -339,7 +364,7 @@ export default function Adventure() {
       await api("pause", { sessionId: session.id });
       setPaused(false);
       setView("done");
-      speech("Até a próxima aventura!", sound);
+      speech("Até a próxima aventura!", soundRef.current);
     });
   }
   async function showParent() {
@@ -392,7 +417,7 @@ export default function Adventure() {
   const narration = round?.question.narration;
   const questionId = round?.question.id;
   useEffect(() => {
-    if (view === "play" && narration) speech(narration, sound);
+    if (view === "play" && narration) speech(narration, soundRef.current);
   }, [questionId, narration, sound, view]);
   const timeUp = elapsed >= (data?.settings.minutes || 8) * 60_000;
   const activeView = view === "play" || view === "done";
@@ -421,11 +446,7 @@ export default function Adventure() {
             <button
               className="icon-button"
               aria-label={sound ? "Desligar voz" : "Ligar voz"}
-              onClick={() => {
-                setSound(!sound);
-                if (sound && "speechSynthesis" in window)
-                  window.speechSynthesis.cancel();
-              }}
+              onClick={toggleSound}
             >
               {sound ? <Volume2 /> : <VolumeX />}
             </button>
@@ -504,7 +525,7 @@ export default function Adventure() {
                   onClick={() =>
                     speech(
                       "Oi, João! Onde vamos brincar? Toque no foguete para brincar com contas, na maçã para o mercadinho, ou escolha outra aventura.",
-                      sound,
+                      soundRef.current,
                     )
                   }
                 >
@@ -599,7 +620,7 @@ export default function Adventure() {
                 <button
                   className="listen-button"
                   aria-label="Ouvir o desafio"
-                  onClick={() => speech(round.question.narration, sound)}
+                  onClick={() => speech(round.question.narration, soundRef.current)}
                 >
                   <Volume2 size={25} />
                 </button>
@@ -782,9 +803,9 @@ export default function Adventure() {
             <section className="parent-section">
               <h2>Cada habilidade tem seu caminho</h2>
               <p>
-                Acerto sem pista e sem ajuda é registrado separadamente. A
-                partir do terceiro estágio, o avanço pede evidências em dias
-                diferentes. O tempo de resposta não determina o estágio.
+                Dois acertos sem pista e sem ajuda, em variações diferentes,
+                permitem avançar ao próximo estágio na mesma brincadeira.
+                O tempo de resposta não determina o estágio.
               </p>
               <div className="skill-list">
                 {activities.map((a) => {

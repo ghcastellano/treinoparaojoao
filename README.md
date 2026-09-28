@@ -32,9 +32,11 @@ Para desenvolvimento sem Neon: remova DATABASE_URL e configure ENABLE_LOCAL_STOR
 - Cookies HttpOnly, SameSite=Strict, Secure em produção; verificação de origem e sessão separada para o painel adulto, aberta sem senha pelo botão Responsáveis.
 - Sem anúncios, analítica de terceiros, microfone, câmera ou chat de IA.
 
+A escolha de ligar/desligar a voz fica salva neste navegador. Ao desligar, o áudio só volta pelo botão Ligar voz; navegar, recarregar ou retornar do painel não reativa a voz. A configuração de voz do painel é o padrão para navegadores sem uma escolha local.
+
 ## Progressão
 
-Estágios independentes por atividade. Nos primeiros dois estágios, três respostas independentes em ao menos três variações permitem avançar. Do terceiro em diante, ao menos quatro respostas independentes, três variações e dois dias diferentes são necessários. Duas tentativas com apoio/erro ajustam a dificuldade para baixo; isso não é apresentado à criança como punição. No último estágio, o adulto vê indicação de que o conteúdo atual foi explorado.
+Estágios independentes por atividade. Dois acertos independentes em duas variações diferentes permitem avançar em qualquer estágio, inclusive na mesma sessão, sem exigir dias diferentes. Duas tentativas com apoio/erro ajustam a dificuldade para baixo; isso não é apresentado à criança como punição. No último estágio, o adulto vê indicação de que o conteúdo atual foi explorado.
 
 Tempo não determina habilidade. A sessão oferece encerramento após cinco atividades ou ao terminar a atividade atual depois do intervalo configurado (3–15 minutos, padrão 8). Essas regras são heurísticas educativas próprias, não normas de desenvolvimento nem critérios diagnósticos.
 

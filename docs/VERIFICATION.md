@@ -15,7 +15,7 @@ Deployed to **https://treinoparaojoao.vercel.app**. GitHub: `ghcastellano/treino
 - Robot paths simulated independently: exactly one valid option reaches the target without obstacles/out-of-bounds moves.
 - Classification rules checked independently for a single correct match.
 - Variety: each activity/stage produces at least three variants.
-- Session state: duplicate correct AND incorrect submissions; duplicate advance; help attribution; across-day progression; repeated items; difficulty adjustment; five-round end; time not used for ability scoring.
+- Session state: duplicate correct AND incorrect submissions; duplicate advance; help attribution; same-day progression after two distinct independent answers at every stage; repeated items; difficulty adjustment; five-round end; time not used for ability scoring.
 - Sessions: signatures, roles, expiry and malformed cookies.
 - API handler integration: passwordless session -> start -> hint -> answer -> reread -> parent session -> settings -> note -> export -> pause -> logout. This automated suite uses local QA storage; separate real Neon/production checks are recorded below.
 - Production dependency audit: 0 reported vulnerabilities at check time.
@@ -73,3 +73,10 @@ Responsive iframe viewports (CSS layout, not physical device emulation):
 - Physical iPad/iPhone/Android audio, touch and orientation behavior.
 - Observation with João; automated and adult testing cannot validate child usability or educational effectiveness.
 - Disaster recovery/point-in-time restore drill and continuous production monitoring.
+
+## Audio preference and faster progression — 2026-09-28
+
+- Explicit audio choice is saved in browser local storage and takes precedence over the server's initial voice setting. Turning voice off cancels current speech; pending API responses read the current preference rather than a captured previous value.
+- Browser verification against the production build and an isolated real Neon preview household: mute survived parent navigation, reload, activity start, the listen button and active-adventure restoration. Only clicking Ligar voz resumed speech. A deliberately delayed hint response stayed silent after muting while the request was pending.
+- Two independent correct answers across two distinct variants now advance every stage on the same day. Browser/API/Neon verification confirmed the next question used the advanced stage in the same adventure. Support/retry attribution, difficulty reduction and the six-stage ceiling remain covered by tests.
+- Lint, TypeScript, all 18 tests and production build passed. The isolated preview QA household was removed; existing production family history was not modified by these tests.

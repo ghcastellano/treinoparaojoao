@@ -126,8 +126,7 @@ test("a wrong answer never leaks solution before resolution, hints remove indepe
   answer(s, "s", round.question.id, round.question.answer, now, "r");
   assert.equal(s.attempts[0].independent, false);
 });
-test("higher stages require different days, not just repetition", () => {
-  let skill = { ...initialState().skills.math, level: 3 };
+test("two independent distinct variants advance every stage on the same day", () => {
   const base: Attempt = {
     id: "a",
     sessionId: "s",
@@ -141,14 +140,21 @@ test("higher stages require different days, not just repetition", () => {
     elapsedMs: 1,
     adultHelp: false,
   };
-  for (let i = 0; i < 8; i++)
+  for (let level = 1; level <= 6; level++) {
+    let skill = { ...initialState().skills.math, level };
     skill = updateSkill(skill, {
       ...base,
-      question: { ...base.question, variant: String(i) },
+      question: { ...base.question, level, variant: "first" },
     });
-  assert.equal(skill.level, 3);
-  skill = updateSkill(skill, { ...base, at: "2026-09-29T12:00:00.000Z" });
-  assert.equal(skill.level, 4);
+    assert.equal(skill.level, level);
+    assert.equal(skill.atCeiling, false);
+    skill = updateSkill(skill, {
+      ...base,
+      question: { ...base.question, level, variant: "second" },
+    });
+    assert.equal(skill.level, Math.min(6, level + 1));
+    assert.equal(skill.atCeiling, level === 6);
+  }
 });
 test("repeated identical exercises do not count as diverse evidence", () => {
   let skill = initialState().skills.math;
