@@ -45,19 +45,3 @@ export function authenticated(
     role,
   );
 }
-export function validPassword(value: unknown) {
-  if (
-    typeof value !== "string" ||
-    value.length > 256 ||
-    !process.env.FAMILY_PASSWORD
-  )
-    return false;
-  const hash = (s: string) => createHmac("sha256", secret()).update(s).digest();
-  return timingSafeEqual(hash(value), hash(process.env.FAMILY_PASSWORD));
-}
-export function rateKey(req: NextRequest) {
-  const ip = process.env.VERCEL
-    ? req.headers.get("x-vercel-forwarded-for") || "unknown"
-    : "local";
-  return createHmac("sha256", secret()).update(ip).digest("hex").slice(0, 24);
-}

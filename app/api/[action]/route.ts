@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID, randomInt } from "node:crypto";
-import { authenticated, sign, validPassword, rateKey } from "@/lib/auth";
+import { authenticated, sign } from "@/lib/auth";
 import { configured, transaction, localMode } from "@/lib/store";
 import {
   start,
@@ -97,34 +97,6 @@ export async function POST(
   }
   try {
     if (action === "login") {
-      const key = rateKey(req),
-        now = Date.now();
-      const allowed = await transaction((s) => {
-        for (const [k, v] of Object.entries(s.loginFailures)) {
-          if (v.until < now) delete s.loginFailures[k];
-        }
-        const r = s.loginFailures[key] || {
-          count: 0,
-          until: now + 15 * 60_000,
-        };
-        if (r.count >= 10) return false;
-        r.count++;
-        s.loginFailures[key] = r;
-        return true;
-      });
-      if (!allowed)
-        return response(
-          { error: "Muitas tentativas. Aguarde 15 minutos." },
-          429,
-        );
-      if (!validPassword(b.password))
-        return response(
-          { error: "A senha não confere. Tente novamente." },
-          401,
-        );
-      await transaction((s) => {
-        delete s.loginFailures[key];
-      });
       const res = response({ ok: true });
       const opts = {
         httpOnly: true,
@@ -136,7 +108,8 @@ export async function POST(
         ...opts,
         maxAge: 30 * 24 * 3600,
       });
-      res.cookies.set("joao_parent", sign("parent"), { ...opts, maxAge: 900 });
+      if (b.parent === true)
+        res.cookies.set("joao_parent", sign("parent"), { ...opts, maxAge: 900 });
       return res;
     }
     if (!authenticated(req))

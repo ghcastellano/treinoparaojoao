@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
   Volume2,
   VolumeX,
@@ -13,7 +12,6 @@ import {
   Check,
   Heart,
   Download,
-  LogOut,
   Home,
   Sparkles,
   RefreshCw,
@@ -64,6 +62,15 @@ async function api<T>(action: string, body?: unknown): Promise<T> {
       data.code,
     );
   return data;
+}
+async function childState(): Promise<Child> {
+  try {
+    return await api<Child>("state");
+  } catch (e) {
+    if (!(e instanceof ApiError) || e.status !== 401) throw e;
+    await api("login", {});
+    return api<Child>("state");
+  }
 }
 function speech(text: string, enabled = true) {
   if (
@@ -208,12 +215,11 @@ export default function Adventure() {
   const [session, setSession] = useState<Session | null>(null);
   const [view, setView] = useState<
     | "loading"
-    | "login"
+    | "retry"
     | "home"
     | "play"
     | "done"
     | "parent"
-    | "parent-login"
     | "setup"
   >("loading");
   const [busy, setBusy] = useState(false);
@@ -228,23 +234,23 @@ export default function Adventure() {
   const focusRef = useRef<HTMLHeadingElement>(null);
   async function load() {
     try {
-      const d = await api<Child>("state");
+      const d = await childState();
       setData(d);
       setSound(d.settings.sound);
       setSession(d.active);
       setView(d.active ? "play" : "home");
     } catch (e) {
       if (e instanceof ApiError && (e.status === 401 || e.code === "CONFIG_REQUIRED")) {
-        setView(e.status === 401 ? "login" : "setup");
+        setView(e.status === 401 ? "retry" : "setup");
       } else {
         setError((e as Error).message);
-        setView("login");
+        setView("retry");
       }
     }
   }
   useEffect(() => {
     let cancelled = false;
-    api<Child>("state")
+    childState()
       .then((d) => {
         if (cancelled) return;
         setData(d);
@@ -254,7 +260,7 @@ export default function Adventure() {
       })
       .catch((e) => {
         if (cancelled) return;
-        setView(e instanceof ApiError && e.code === "CONFIG_REQUIRED" ? "setup" : "login");
+        setView(e instanceof ApiError && e.code === "CONFIG_REQUIRED" ? "setup" : "retry");
         if (!(e instanceof ApiError) || (e.status !== 401 && e.code !== "CONFIG_REQUIRED")) setError(e.message);
       });
     return () => {
@@ -280,7 +286,7 @@ export default function Adventure() {
       await task();
     } catch (e) {
       setError((e as Error).message);
-      if (e instanceof ApiError && e.status === 401) setView("login");
+      if (e instanceof ApiError && e.status === 401) setView("retry");
     } finally {
       setBusy(false);
       lock.current = false;
@@ -343,8 +349,10 @@ export default function Adventure() {
         setParent(p);
         setView("parent");
       } catch (e) {
-        if (e instanceof ApiError && e.status === 403) setView("parent-login");
-        else throw e;
+        if (!(e instanceof ApiError) || e.status !== 403) throw e;
+        await api("login", { parent: true });
+        setParent(await api<Parent>("parent"));
+        setView("parent");
       }
     });
   }
@@ -461,87 +469,20 @@ export default function Adventure() {
             <p>Preparando as descobertas…</p>
           </div>
         )}
-        {view === "setup" && (
+        {(view === "setup" || view === "retry") && (
           <div className="center">
             <section className="panel login-panel">
               <span className="big-icon">🌱</span>
-              <h1>A aventura está sendo preparada</h1>
+              <h1>{view === "setup" ? "A aventura está sendo preparada" : "Vamos tentar novamente?"}</h1>
               <p>
-                O acesso privado e o banco de dados precisam ser conectados
-                antes de começar.
+                {view === "setup"
+                  ? "O banco de dados precisa ser conectado antes de começar."
+                  : "Não foi possível carregar as descobertas. Tente novamente."}
               </p>
               <button className="primary" onClick={() => void run(load)}>
                 <RefreshCw size={18} />
                 Verificar novamente
               </button>
-            </section>
-          </div>
-        )}
-        {(view === "login" || view === "parent-login") && (
-          <div className="center">
-            <section className="panel login-panel">
-              <span className="login-icon">
-                <LockKeyhole size={32} />
-              </span>
-              <p className="eyebrow">UM ESPAÇO DA FAMÍLIA</p>
-              <h1>
-                {view === "parent-login"
-                  ? "Olá, responsável."
-                  : "Vamos abrir esse mundo?"}
-              </h1>
-              <p>
-                {view === "parent-login"
-                  ? "Confirme a senha para ver o histórico e ajustar as aventuras."
-                  : "Um adulto entra uma vez. Depois, João pode explorar neste aparelho."}
-              </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const form = e.currentTarget;
-                  const password = new FormData(form).get("password");
-                  void run(async () => {
-                    await api("login", { password });
-                    form.reset();
-                    if (view === "parent-login") {
-                      setParent(await api<Parent>("parent"));
-                      setView("parent");
-                    } else {
-                      await api("lock-parent", {});
-                      await load();
-                    }
-                  });
-                }}
-              >
-                <label htmlFor="password">Senha da família</label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  minLength={12}
-                  maxLength={256}
-                />
-                <button className="primary" disabled={busy}>
-                  {busy ? "Entrando…" : "Entrar"}
-                  <ArrowRight size={20} />
-                </button>
-              </form>
-              {view === "parent-login" && (
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    setView(session && !session.endedAt ? "play" : "home")
-                  }
-                >
-                  <ArrowLeft size={16} />
-                  Voltar à brincadeira
-                </button>
-              )}
-              <p className="privacy-note">
-                <ShieldCheck size={16} />
-                Sem anúncios. Sem ranking. No seu ritmo.
-              </p>
             </section>
           </div>
         )}
@@ -1077,21 +1018,6 @@ export default function Adventure() {
                 psicológicos.
               </p>
             </section>
-            <button
-              className="text-button logout"
-              onClick={() =>
-                void run(async () => {
-                  await api("logout", {});
-                  setData(null);
-                  setParent(null);
-                  setSession(null);
-                  setView("login");
-                })
-              }
-            >
-              <LogOut size={18} />
-              Sair deste aparelho
-            </button>
           </div>
         )}
       </main>

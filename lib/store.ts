@@ -8,8 +8,6 @@ export function configured() {
   return Boolean(
     process.env.SESSION_SECRET &&
     process.env.SESSION_SECRET.length >= 32 &&
-    process.env.FAMILY_PASSWORD &&
-    process.env.FAMILY_PASSWORD.length >= 12 &&
     (process.env.DATABASE_URL || localMode()),
   );
 }

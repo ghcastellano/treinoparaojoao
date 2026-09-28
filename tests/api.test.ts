@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { NextRequest } from "next/server";
 import { GET, POST } from "../app/api/[action]/route";
 import { transaction } from "../lib/store";
-import { sign } from "../lib/auth";
+import { sign, verify } from "../lib/auth";
 import { rm } from "node:fs/promises";
 process.env.SESSION_SECRET = "integration-test-secret-more-than-32-characters";
-process.env.FAMILY_PASSWORD = "integration-test-password";
+delete process.env.FAMILY_PASSWORD;
 process.env.ENABLE_LOCAL_STORE = "true";
 process.env.HOUSEHOLD_ID = `qa-${process.pid}`;
 delete process.env.DATABASE_URL;
@@ -37,12 +37,18 @@ async function call(
 test("API lifecycle: auth -> start -> hint -> answer -> reload -> parent -> export -> pause", async () => {
   try {
     assert.equal((await call("state")).status, 401);
-    assert.equal((await call("login", { password: "wrong" })).status, 401);
-    const login = await call("login", {
-      password: process.env.FAMILY_PASSWORD,
-    });
+    assert.equal(
+      (await call("login", {}, undefined, "https://evil.example")).status,
+      403,
+    );
+    const login = await call("login", {});
     assert.equal(login.status, 200);
     assert.ok(login.res.headers.get("set-cookie")?.includes("HttpOnly"));
+    assert.ok(verify(login.res.cookies.get("joao_child")?.value, "child"));
+    assert.equal(login.res.cookies.get("joao_parent"), undefined);
+    const openParent = await call("login", { parent: true });
+    assert.equal(openParent.status, 200);
+    assert.ok(verify(openParent.res.cookies.get("joao_parent")?.value, "parent"));
     assert.equal(
       (
         await call(

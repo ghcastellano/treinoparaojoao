@@ -2,6 +2,8 @@
 
 Aplicativo familiar de brincadeiras educativas, pensado inicialmente para 4 anos e 9 meses. Sete atividades, incluindo soma/subtração e introdução posterior a agrupamentos e divisão igualitária. Não é um teste de QI, instrumento de identificação de altas habilidades ou intervenção clinicamente validada.
 
+Acesso sem senha, por escolha do proprietário. Qualquer pessoa com o link pode brincar, abrir o painel dos responsáveis, consultar/exportar o histórico e alterar as preferências.
+
 ## Executar
 
 Node.js 22 ou superior.
@@ -9,12 +11,12 @@ Node.js 22 ou superior.
 ```sh
 npm ci
 cp .env.example .env.local
-# Configure DATABASE_URL, SESSION_SECRET e FAMILY_PASSWORD em .env.local.
+# Configure DATABASE_URL e SESSION_SECRET em .env.local.
 npm run db:migrate
 npm run dev
 ```
 
-A senha deve ter ao menos 12 caracteres. SESSION_SECRET deve ser aleatório, com pelo menos 32 caracteres. Nunca use as credenciais de QA em produção. O acesso adulto expira em 15 minutos; o acesso infantil no dispositivo, em 30 dias. Para revogar todos os acessos, rotacione SESSION_SECRET. Não há cadastro público.
+SESSION_SECRET deve ser aleatório, com pelo menos 32 caracteres. Nunca use segredos de QA em produção. A sessão infantil é criada automaticamente e dura 30 dias. O botão Responsáveis abre uma sessão de painel de 15 minutos, sem senha. Esses cookies organizam o fluxo e não restringem o acesso a quem conhece o link. Não há cadastro.
 
 Para desenvolvimento sem Neon: remova DATABASE_URL e configure ENABLE_LOCAL_STORE=true. Esse modo é explicitamente identificado na interface e bloqueado na Vercel. O histórico fica em `.local-data/`, ignorado pelo git. `/dev-preview` fornece uma sessão de QA exclusivamente em NODE_ENV=development, fora da Vercel e com armazenamento local habilitado. `/dev-qa` contém frames para inspeção responsiva, somente no desenvolvimento. Ambos retornam 404 em produção.
 
@@ -27,7 +29,7 @@ Para desenvolvimento sem Neon: remova DATABASE_URL e configure ENABLE_LOCAL_STOR
 - Essa estrutura deliberadamente pequena atende ao escopo familiar. Histórico muito extenso exigirá normalização/paginação; nenhuma estatística é apagada automaticamente.
 - Os itens são gerados e corrigidos no servidor. O cliente recebe opções e enunciado, sem gabarito, até concluir a tentativa.
 - Envios duplicados de resposta e avanço são idempotentes. Pistas e ajuda de adulto são persistidas antes de aparecerem.
-- Cookies HttpOnly, SameSite=Strict, Secure em produção; verificação de origem, limitação de tentativas e autenticação separada para o painel adulto.
+- Cookies HttpOnly, SameSite=Strict, Secure em produção; verificação de origem e sessão separada para o painel adulto, aberta sem senha pelo botão Responsáveis.
 - Sem anúncios, analítica de terceiros, microfone, câmera ou chat de IA.
 
 ## Progressão
@@ -51,11 +53,11 @@ npm run build
 
 1. Criar repositório privado `ghcastellano/treinoparaojoao` e enviar a branch `main`.
 2. Criar projeto Neon exclusivo, sem apagar projetos antigos apenas pela data. Preferir banco/branch de preview separado de produção.
-3. Configurar `DATABASE_URL` (aplicação), `DATABASE_URL_UNPOOLED` (migração), `SESSION_SECRET`, `FAMILY_PASSWORD` e `HOUSEHOLD_ID=joao` na Vercel. Preview usa banco/segredos separados e HOUSEHOLD_ID=preview.
+3. Configurar `DATABASE_URL` (aplicação), `DATABASE_URL_UNPOOLED` (migração), `SESSION_SECRET` e `HOUSEHOLD_ID=joao` na Vercel. Preview usa banco/segredos separados e HOUSEHOLD_ID=preview.
 4. Executar a migração versionada. O script usa a URL direta quando disponível.
 5. Importar o repositório na Vercel, framework Next.js, Node 22+, instalar via `npm ci`, compilar via `npm run build`.
 6. Atribuir `treinoparaojoao.vercel.app` se disponível e verificar o deploy Ready.
-7. Verificar login, início, pista, resposta, retomada em outro aparelho, painel e exportação com Neon real. Confirmar que `/dev-preview` e `/dev-qa` retornam 404.
+7. Verificar abertura sem senha, início, pista, resposta, retomada em outro aparelho, painel e exportação com Neon real. Confirmar que `/dev-preview` e `/dev-qa` retornam 404.
 8. Fazer observação breve de João em tablet/celular: entende a voz? encontra as ações? precisa arrastar? fica frustrado? Interromper quando quiser. Emulação não comprova usabilidade infantil.
 
 ## Referências pedagógicas
